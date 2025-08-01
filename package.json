@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "echo '--- FILE LISTING ---' && ls -R && echo '--- END FILE LISTING ---' && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
