@@ -27,7 +27,7 @@ app.use(express.json());
 
 const corsOptions = {
     // Add your new Vercel URL here!
-    origin: ['http://localhost:5173', 'https://skillforge-goal-tracker.vercel.app'],
+    origin: 'https://skillforge-goal-tracker.vercel.app',
     credentials: true,
     optionsSuccessStatus: 200
 };
