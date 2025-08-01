@@ -1,49 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SkillForge: Goal Tracker</title>
-    <script src="https://unpkg.com/@babel/standalone@7.24.9/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      /* Custom scrollbar for a more modern look */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1f2937; /* bg-gray-800 */
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #4b5563; /* bg-gray-600 */
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #6b7280; /* bg-gray-500 */
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@^18.2.0/client",
-    "react-router-dom": "https://esm.sh/react-router-dom@^6.22.3",
-    "@google/genai": "https://esm.sh/@google/genai@^0.12.0",
-    "react/": "https://esm.sh/react@^19.1.1/",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
-    "express": "https://esm.sh/express@^5.1.0",
-    "mongoose": "https://esm.sh/mongoose@^8.17.0",
-    "cors": "https://esm.sh/cors@^2.8.5",
-    "bcryptjs": "https://esm.sh/bcryptjs@^3.0.2",
-    "dotenv": "https://esm.sh/dotenv@^17.2.1",
-    "jsonwebtoken": "https://esm.sh/jsonwebtoken@^9.0.2"
-  }
-}
-</script>
-</head>
-  <body class="bg-gray-900 text-gray-100">
+    <title>SkillForge</title>
+  </head>
+  <body>
     <div id="root"></div>
-    <script type="text/babel" data-type="module" data-presets="react,typescript" src="/index.tsx"></script>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
