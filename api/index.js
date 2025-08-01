@@ -26,8 +26,12 @@ app.use(express.json());
 // In your api/index.js file
 
 const corsOptions = {
-    // Add your new Vercel URL here!
-    origin: 'https://skillforge-goal-tracker.vercel.app',
+    origin: [
+        'https://skillforge-goal-tracker.vercel.app',
+        'https://skillforge-goal-tracker-j8fbiwjrw-mehmet-alps-projects-20d93c8c.vercel.app',
+        'skillforge-goal-tracker-9vkhibcvs-mehmet-alps-projects-20d93c8c.vercel.app',
+        'http://localhost:5173' // For local development
+    ],
     credentials: true,
     optionsSuccessStatus: 200
 };
