@@ -23,7 +23,16 @@ app.use(express.json());
 // Enable CORS
 // This is permissive for local development to handle random ports from `npx serve`.
 // In a production environment, you should restrict this to your frontend's domain.
-app.use(cors());
+// In your api/index.js file
+
+const corsOptions = {
+    // Add your new Vercel URL here!
+    origin: 'https://skillforge-goal-tracker.vercel.app',
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // Mount routers
 app.use('/api/auth', authRoutes);
