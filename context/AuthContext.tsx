@@ -7,7 +7,7 @@ import { API_BASE_URL } from '../config.ts';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_API_URL = `https://skillforge-api-7x61.onrender.com/auth`;
+const AUTH_API_URL = `${API_BASE_URL}/auth`;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
