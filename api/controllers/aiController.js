@@ -8,10 +8,12 @@ import ErrorResponse from '../utils/errorResponse.js';
 export const suggestGoals = asyncHandler(async (req, res, next) => {
     const { prompt } = req.body;
 
+    // Use the key securely from the server's environment variables
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!apiKey || typeof apiKey !== 'string' || apiKey.length < 10) {
-        return next(new ErrorResponse('AI service is not configured. Please ensure GEMINI_API_KEY is set correctly in your .env file.', 500));
+    // Check if the key is configured on the server
+    if (!apiKey) {
+        return next(new ErrorResponse('AI service is not configured.', 500));
     }
 
     if (!prompt) {
@@ -27,10 +29,9 @@ export const suggestGoals = asyncHandler(async (req, res, next) => {
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         
-        // --- START: THE FINAL, MOST ROBUST FIX ---
         let text = response.text();
 
-        // Find the start and end of the JSON array
+        // Clean up the response to ensure it's valid JSON
         const startIndex = text.indexOf('[');
         const endIndex = text.lastIndexOf(']');
 
@@ -38,18 +39,13 @@ export const suggestGoals = asyncHandler(async (req, res, next) => {
             throw new Error("AI response did not contain a valid JSON array.");
         }
         
-        // Extract ONLY the JSON part of the string
         const jsonText = text.substring(startIndex, endIndex + 1);
-        // --- END: THE FINAL, MOST ROBUST FIX ---
-
         const suggestions = JSON.parse(jsonText);
 
         res.status(200).json({ success: true, data: suggestions });
 
     } catch (error) {
         console.error('Error calling or parsing Gemini API:', error);
-        // Include the raw text in the error for easier debugging
-        console.error("Raw AI Response Text:", error.rawText || "N/A");
-        return next(new ErrorResponse('Failed to generate suggestions from AI. The model returned an unexpected format.', 500));
+        return next(new ErrorResponse('Failed to generate suggestions from the AI service.', 500));
     }
 });
