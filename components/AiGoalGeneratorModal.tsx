@@ -116,20 +116,30 @@ const AiGoalGeneratorModal = ({ isOpen, onClose, onAddGoals }: AiGoalGeneratorMo
                         <div className="mt-6">
                             <h3 className="text-lg font-semibold text-gray-200 mb-3">Suggested Goals (select to add):</h3>
                             <div className="space-y-3">
-                                {suggestions.map((goal, index) => (
-                                    <div key={index} onClick={() => handleToggleSelection(index)} className="bg-gray-900/70 p-4 rounded-lg cursor-pointer border-2 border-transparent hover:border-purple-500 transition-all flex items-start gap-4">
-                                        <div className={`w-6 h-6 rounded-md flex-shrink-0 mt-1 flex items-center justify-center transition-colors ${selectedGoals.includes(index) ? 'bg-purple-500 border-purple-500' : 'bg-gray-700 border-gray-600'}`}>
-                                           {selectedGoals.includes(index) && <CheckIcon className="w-5 h-5 text-white" />}
-                                        </div>
-                                        <div className="flex-grow">
-                                            <h4 className="font-bold text-white">{goal.title}</h4>
-                                            <p className="text-gray-400 text-sm">{goal.description}</p>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border mt-2 inline-block ${difficultyColors[goal.difficulty]}`}>
+                            {suggestions.map((goal, index) => (
+                                <div key={index} onClick={() => handleToggleSelection(index)} className="bg-gray-900/70 p-4 rounded-lg cursor-pointer border-2 border-transparent hover:border-purple-500 transition-all flex items-start gap-4">
+                                    <div className={`w-6 h-6 rounded-md flex-shrink-0 mt-1 flex items-center justify-center transition-colors ${selectedGoals.includes(index) ? 'bg-purple-500 border-purple-500' : 'bg-gray-700 border-gray-600'}`}>
+                                        {selectedGoals.includes(index) && <CheckIcon className="w-5 h-5 text-white" />}
+                                    </div>
+                                    <div className="flex-grow">
+                                        <h4 className="font-bold text-white">{goal.title}</h4>
+                                        <p className="text-gray-400 text-sm">{goal.description}</p>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border inline-block ${difficultyColors[goal.difficulty]}`}>
                                                 {goal.difficulty}
                                             </span>
+                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-blue-400 text-blue-300 inline-block">
+                                                {goal.durationDays} days
+                                            </span>
+                                            {goal.suggestedStartDate && goal.suggestedEndDate && (
+                                                <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-green-400 text-green-300 inline-block">
+                                                    {new Date(goal.suggestedStartDate).toLocaleDateString()} - {new Date(goal.suggestedEndDate).toLocaleDateString()}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                ))}
+                                </div>
+                            ))}
                             </div>
                         </div>
                     )}

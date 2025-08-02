@@ -130,19 +130,25 @@ const DashboardPage = () => {
             
             // Create subtasks with distributed dates and time intervals
             const subtaskPromises = subtasks.map((subtask, index) => {
-                // Calculate start date for this subtask
-                const subtaskStartDate = new Date(startDate);
-                subtaskStartDate.setDate(startDate.getDate() + (index * daysPerSubtask));
+                let subtaskStartDate, subtaskEndDate;
                 
-                // Calculate end date for this subtask (start of next subtask - 1 day, or overall end date)
-                const subtaskEndDate = new Date(subtaskStartDate);
-                
-                if (index === subtasks.length - 1) {
-                    // Last subtask ends on the overall end date
-                    subtaskEndDate.setTime(endDate.getTime());
+                if (subtask.suggestedStartDate && subtask.suggestedEndDate) {
+                    // Use AI-suggested dates if available
+                    subtaskStartDate = new Date(subtask.suggestedStartDate);
+                    subtaskEndDate = new Date(subtask.suggestedEndDate);
                 } else {
-                    // Subtask ends right before the next one starts
-                    subtaskEndDate.setDate(subtaskStartDate.getDate() + daysPerSubtask - 1);
+                    // Calculate based on index in the sequence
+                    subtaskStartDate = new Date(startDate);
+                    subtaskStartDate.setDate(startDate.getDate() + (index * daysPerSubtask));
+                    
+                    subtaskEndDate = new Date(subtaskStartDate);
+                    if (index === subtasks.length - 1) {
+                        // Last subtask ends on the overall end date
+                        subtaskEndDate = new Date(endDate);
+                    } else {
+                        // Subtask ends right before the next one starts
+                        subtaskEndDate.setDate(subtaskStartDate.getDate() + daysPerSubtask - 1);
+                    }
                 }
                 
                 const formattedStartDate = subtaskStartDate.toISOString().split('T')[0];
@@ -152,7 +158,7 @@ const DashboardPage = () => {
                 const dateRange = `(${formattedStartDate} to ${formattedEndDate})`;
                 const enhancedDescription = `${dateRange} ${subtask.description}`;
                 
-                const subtaskData = {
+                const newGoalData = {
                     title: subtask.title,
                     description: enhancedDescription,
                     difficulty: subtask.difficulty,
@@ -160,11 +166,11 @@ const DashboardPage = () => {
                     startDate: formattedStartDate,
                     targetEndDate: formattedEndDate,
                     progressPercentage: 0,
-                    parentGoal: newGoal._id,
+                    parentGoal: newGoal._id,  // Set parent goal correctly
                     isArchived: false,
                 };
                 
-                return goalService.createGoal(subtaskData, token);
+                return goalService.createGoal(newGoalData, token);
             });
             
             await Promise.all(subtaskPromises);

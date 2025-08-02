@@ -24,7 +24,19 @@ export const suggestGoals = asyncHandler(async (req, res, next) => {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-        const fullPrompt = `You are an expert project manager. A user wants to achieve this goal: "${prompt}". Break it down into 3 to 5 smaller, concrete, and actionable sub-goals. For each sub-goal, provide a title, description, and difficulty (Easy, Medium, Hard, or Expert). Respond ONLY with a valid JSON array of objects. Each object must have "title", "description", and "difficulty" properties. Do not include any other text, markdown, or explanation.`;
+        const fullPrompt = `You are an expert project manager. A user wants to achieve this goal: "${prompt}". 
+Break it down into 3 to 5 smaller, concrete, and actionable sub-goals. 
+For each sub-goal, provide:
+1. A title
+2. A detailed description
+3. Difficulty level (Easy, Medium, Hard, or Expert)
+4. Recommended duration in days
+5. A suggested start date (YYYY-MM-DD format) and end date based on the duration
+
+The sub-goals should represent a progressive path toward completing the main goal, with start and end dates that make sense in sequence.
+The entire timeline should span from ${startDate} to ${endDate}.
+
+Respond ONLY with a valid JSON array of objects. Each object must have "title", "description", "difficulty", "durationDays", "suggestedStartDate", and "suggestedEndDate" properties. Do not include any other text, markdown, or explanation.`;
         
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
