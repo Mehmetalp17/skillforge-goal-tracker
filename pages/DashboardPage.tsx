@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.tsx'; // Make sure this is impor
 import * as goalService from '../services/goalService.ts';
 import { fetchDailyQuote } from '../services/quoteService.ts';
 import { LearningGoal, SuggestedGoal, GoalDifficulty, GoalStatus } from '../types.ts';
-import GoalList from '../components/GoalHierarchy.tsx';
+import GoalList from '../components/GoalList.tsx';
 import GoalForm from '../components/GoalForm.tsx';
 import AiGoalGeneratorModal from '../components/AiGoalGeneratorModal.tsx';
 import { PlusIcon, SpinnerIcon, SparklesIcon } from '../components/icons.tsx';
@@ -175,7 +175,7 @@ const DashboardPage = () => {
         }
     };
 
-    
+
     return (
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {!isLoadingQuote && quote && (
