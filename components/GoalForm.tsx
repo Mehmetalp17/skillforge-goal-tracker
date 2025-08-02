@@ -95,6 +95,7 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
         }
     };
 
+    // Update the handleGenerateSubtasks function in GoalForm.tsx
     const handleGenerateSubtasks = async () => {
         if (!formData.title || !formData.description || !formData.startDate || !formData.targetEndDate) {
             setSubtaskError('Please fill in the title, description, start date and target end date first.');
@@ -106,9 +107,11 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
 
         try {
             const prompt = `Generate progressive subtasks for this goal: "${formData.title}". 
-                           Description: ${formData.description}. 
-                           The subtasks should span from ${formData.startDate} to ${formData.targetEndDate} 
-                           and show a clear progression toward completing the main goal.`;
+                        Description: ${formData.description}. 
+                        The subtasks should span from ${formData.startDate} to ${formData.targetEndDate} 
+                        and show a clear progression toward completing the main goal.
+                        Create tasks that build on each other and represent a logical progression.
+                        Each subtask should be concrete, specific, and achievable within a few days.`;
 
             const results = await aiService.fetchSuggestedGoals(prompt, token);
             setSuggestedSubtasks(results);

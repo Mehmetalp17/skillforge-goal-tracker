@@ -109,7 +109,7 @@ const DashboardPage = () => {
         setIsFormOpen(true);
     }
 
-    // Add this function
+    // Update the handleSaveGoalWithSubtasks function in DashboardPage.tsx
     const handleSaveGoalWithSubtasks = async (
         goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'>, 
         subtasks: SuggestedGoal[]
@@ -117,46 +117,65 @@ const DashboardPage = () => {
         if (!token) return;
         
         try {
-        // First save the main goal
-        const newGoal = await goalService.createGoal(goalData, token);
-        
-        // Then create all subtasks with the parent ID set
-        const startDate = new Date(goalData.startDate);
-        const endDate = new Date(goalData.targetEndDate);
-        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Create subtasks with distributed dates
-        const subtaskPromises = subtasks.map((subtask, index) => {
-            // Calculate a proportional date for this subtask
-            const daysToAdd = Math.floor((index / subtasks.length) * totalDays);
-            const subtaskDate = new Date(startDate);
-            subtaskDate.setDate(startDate.getDate() + daysToAdd);
+            // First save the main goal
+            const newGoal = await goalService.createGoal(goalData, token);
             
-            const formattedDate = subtaskDate.toISOString().split('T')[0];
+            // Calculate date ranges for better distribution
+            const startDate = new Date(goalData.startDate);
+            const endDate = new Date(goalData.targetEndDate);
+            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
             
-            const subtaskData = {
-            title: subtask.title,
-            description: subtask.description,
-            difficulty: subtask.difficulty,
-            status: GoalStatus.NotStarted,
-            startDate: formattedDate,
-            targetEndDate: goalData.targetEndDate, // All subtasks should finish by the parent's end date
-            progressPercentage: 0,
-            parentGoal: newGoal._id, // Set the parent goal ID
-            isArchived: false,
-            };
+            // How many days to allocate per subtask
+            const daysPerSubtask = Math.floor(totalDays / subtasks.length);
             
-            return goalService.createGoal(subtaskData, token);
-        });
-        
-        await Promise.all(subtaskPromises);
-        fetchAllGoals();
+            // Create subtasks with distributed dates and time intervals
+            const subtaskPromises = subtasks.map((subtask, index) => {
+                // Calculate start date for this subtask
+                const subtaskStartDate = new Date(startDate);
+                subtaskStartDate.setDate(startDate.getDate() + (index * daysPerSubtask));
+                
+                // Calculate end date for this subtask (start of next subtask - 1 day, or overall end date)
+                const subtaskEndDate = new Date(subtaskStartDate);
+                
+                if (index === subtasks.length - 1) {
+                    // Last subtask ends on the overall end date
+                    subtaskEndDate.setTime(endDate.getTime());
+                } else {
+                    // Subtask ends right before the next one starts
+                    subtaskEndDate.setDate(subtaskStartDate.getDate() + daysPerSubtask - 1);
+                }
+                
+                const formattedStartDate = subtaskStartDate.toISOString().split('T')[0];
+                const formattedEndDate = subtaskEndDate.toISOString().split('T')[0];
+                
+                // Add date range to description for clarity
+                const dateRange = `(${formattedStartDate} to ${formattedEndDate})`;
+                const enhancedDescription = `${dateRange} ${subtask.description}`;
+                
+                const subtaskData = {
+                    title: subtask.title,
+                    description: enhancedDescription,
+                    difficulty: subtask.difficulty,
+                    status: GoalStatus.NotStarted,
+                    startDate: formattedStartDate,
+                    targetEndDate: formattedEndDate,
+                    progressPercentage: 0,
+                    parentGoal: newGoal._id,
+                    isArchived: false,
+                };
+                
+                return goalService.createGoal(subtaskData, token);
+            });
+            
+            await Promise.all(subtaskPromises);
+            fetchAllGoals();
         } catch (err: any) {
-        setError(err.message || 'Failed to save goal with subtasks.');
-        setTimeout(() => setError(null), 5000);
+            setError(err.message || 'Failed to save goal with subtasks.');
+            setTimeout(() => setError(null), 5000);
         }
     };
 
+    
     return (
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {!isLoadingQuote && quote && (
