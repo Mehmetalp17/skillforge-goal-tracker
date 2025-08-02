@@ -30,3 +30,21 @@ export const fetchSuggestedGoals = async (prompt: string, token: string | null):
     });
     return handleResponse(response);
 };
+
+// in services/aiService.ts
+
+// Optional: Add a specialized function for subtask generation
+export const generateSubtasks = async (
+    goalTitle: string,
+    description: string,
+    startDate: string,
+    endDate: string,
+    token: string | null
+  ): Promise<SuggestedGoal[]> => {
+    const prompt = `Generate 3-5 progressive subtasks for this goal: "${goalTitle}". 
+                   Description: ${description}. 
+                   The subtasks should span from ${startDate} to ${endDate} 
+                   and show a clear progression toward completing the main goal.`;
+                   
+    return fetchSuggestedGoals(prompt, token);
+  };

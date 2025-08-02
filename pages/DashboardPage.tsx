@@ -109,6 +109,54 @@ const DashboardPage = () => {
         setIsFormOpen(true);
     }
 
+    // Add this function
+    const handleSaveGoalWithSubtasks = async (
+        goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'>, 
+        subtasks: SuggestedGoal[]
+    ) => {
+        if (!token) return;
+        
+        try {
+        // First save the main goal
+        const newGoal = await goalService.createGoal(goalData, token);
+        
+        // Then create all subtasks with the parent ID set
+        const startDate = new Date(goalData.startDate);
+        const endDate = new Date(goalData.targetEndDate);
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Create subtasks with distributed dates
+        const subtaskPromises = subtasks.map((subtask, index) => {
+            // Calculate a proportional date for this subtask
+            const daysToAdd = Math.floor((index / subtasks.length) * totalDays);
+            const subtaskDate = new Date(startDate);
+            subtaskDate.setDate(startDate.getDate() + daysToAdd);
+            
+            const formattedDate = subtaskDate.toISOString().split('T')[0];
+            
+            const subtaskData = {
+            title: subtask.title,
+            description: subtask.description,
+            difficulty: subtask.difficulty,
+            status: GoalStatus.NotStarted,
+            startDate: formattedDate,
+            targetEndDate: goalData.targetEndDate, // All subtasks should finish by the parent's end date
+            progressPercentage: 0,
+            parentGoal: newGoal._id, // Set the parent goal ID
+            isArchived: false,
+            };
+            
+            return goalService.createGoal(subtaskData, token);
+        });
+        
+        await Promise.all(subtaskPromises);
+        fetchAllGoals();
+        } catch (err: any) {
+        setError(err.message || 'Failed to save goal with subtasks.');
+        setTimeout(() => setError(null), 5000);
+        }
+    };
+
     return (
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {!isLoadingQuote && quote && (
@@ -164,6 +212,7 @@ const DashboardPage = () => {
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 onSave={handleSaveGoal}
+                onSaveWithSubtasks={handleSaveGoalWithSubtasks}
                 allGoals={allGoals}
             />
             

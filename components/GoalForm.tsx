@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { LearningGoal, GoalStatus, GoalDifficulty } from '../types.ts';
-import { SpinnerIcon } from './icons.tsx';
+import { LearningGoal, GoalStatus, GoalDifficulty, SuggestedGoal } from '../types.ts';
+import { SpinnerIcon, SparklesIcon } from './icons.tsx';
+import * as aiService from '../services/aiService.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface GoalFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (goal: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal) => Promise<void>;
+    onSave: (goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal) => Promise<void>;
     goalToEdit?: LearningGoal | null;
     parentId?: string | null;
     allGoals: LearningGoal[];
+    onSaveWithSubtasks?: (goal: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'>, subtasks: SuggestedGoal[]) => Promise<void>;
 }
 
-const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoals }: GoalFormProps) => {
+const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoals, onSaveWithSubtasks }: GoalFormProps) => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -24,6 +27,12 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
         notes: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSubtasks, setShowSubtasks] = useState(false);
+    const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
+    const [suggestedSubtasks, setSuggestedSubtasks] = useState<SuggestedGoal[]>([]);
+    const [selectedSubtasks, setSelectedSubtasks] = useState<number[]>([]);
+    const [subtaskError, setSubtaskError] = useState('');
+    const { token } = useAuth();
 
     useEffect(() => {
         if (goalToEdit) {
@@ -52,6 +61,11 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                 notes: '',
             });
         }
+        // Reset subtask state when form opens/closes
+        setShowSubtasks(false);
+        setSuggestedSubtasks([]);
+        setSelectedSubtasks([]);
+        setSubtaskError('');
     }, [goalToEdit, parentId, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -67,13 +81,82 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
             isArchived: false,
         };
         
-        if (goalToEdit) {
-            await onSave({ ...goalToEdit, ...goalData });
-        } else {
-            await onSave(goalData);
+        try {
+            if (goalToEdit) {
+                await onSave({ ...goalToEdit, ...goalData });
+            } else {
+                await onSave(goalData);
+            }
+            setIsSubmitting(false);
+            onClose();
+        } catch (error) {
+            console.error(error);
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
-        onClose();
+    };
+
+    const handleGenerateSubtasks = async () => {
+        if (!formData.title || !formData.description || !formData.startDate || !formData.targetEndDate) {
+            setSubtaskError('Please fill in the title, description, start date and target end date first.');
+            return;
+        }
+
+        setIsGeneratingSubtasks(true);
+        setSubtaskError('');
+
+        try {
+            const prompt = `Generate progressive subtasks for this goal: "${formData.title}". 
+                           Description: ${formData.description}. 
+                           The subtasks should span from ${formData.startDate} to ${formData.targetEndDate} 
+                           and show a clear progression toward completing the main goal.`;
+
+            const results = await aiService.fetchSuggestedGoals(prompt, token);
+            setSuggestedSubtasks(results);
+            setShowSubtasks(true);
+            // Select all subtasks by default
+            setSelectedSubtasks(results.map((_, index) => index));
+        } catch (err: any) {
+            setSubtaskError(err.message || 'Failed to generate subtasks.');
+        } finally {
+            setIsGeneratingSubtasks(false);
+        }
+    };
+
+    const handleToggleSubtask = (index: number) => {
+        setSelectedSubtasks(prev => 
+            prev.includes(index)
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+        );
+    };
+
+    const handleSaveWithSubtasks = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        
+        const goalData = {
+            ...formData,
+            isArchived: false,
+        };
+
+        try {
+            const selectedTasks = selectedSubtasks.map(index => suggestedSubtasks[index]);
+            
+            if (goalToEdit) {
+                await onSave({ ...goalToEdit, ...goalData });
+                // Handle subtasks separately if needed for edited goals
+            } else {
+                if (onSaveWithSubtasks) {
+                    await onSaveWithSubtasks(goalData, selectedTasks);
+                }
+            }
+            
+            setIsSubmitting(false);
+            onClose();
+        } catch (error) {
+            console.error(error);
+            setIsSubmitting(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -90,14 +173,13 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
     }
 
     const unselectableParentIds = goalToEdit ? [goalToEdit._id, ...getDescendants(goalToEdit._id)] : [];
-
     const availableParents = allGoals.filter(g => !unselectableParentIds.includes(g._id));
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <h2 className="text-2xl font-bold text-white mb-4">{goalToEdit ? 'Edit Goal' : 'Create New Goal'}</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={showSubtasks ? handleSaveWithSubtasks : handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium text-gray-300">Title</label>
                         <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white" />
@@ -141,12 +223,83 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                             {availableParents.map(g => <option key={g._id} value={g._id}>{g.title}</option>)}
                         </select>
                     </div>
-                    <div className="flex justify-end space-x-3 pt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition">Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-800 transition flex items-center">
-                            {isSubmitting && <SpinnerIcon className="w-5 h-5 mr-2" />}
-                            {isSubmitting ? 'Saving...' : 'Save Goal'}
+                    <div>
+                        <label htmlFor="notes" className="block text-sm font-medium text-gray-300">Notes (Optional)</label>
+                        <textarea 
+                            name="notes" 
+                            id="notes" 
+                            value={formData.notes} 
+                            onChange={handleChange} 
+                            rows={3} 
+                            className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white"
+                        ></textarea>
+                    </div>
+
+                    {/* Show subtasks section if they're generated */}
+                    {showSubtasks && suggestedSubtasks.length > 0 && (
+                        <div className="mt-6 border-t border-gray-700 pt-4">
+                            <h3 className="text-lg font-semibold text-gray-200 mb-3">Recommended Subtasks:</h3>
+                            <div className="space-y-3 max-h-60 overflow-y-auto p-2">
+                                {suggestedSubtasks.map((subtask, index) => (
+                                    <div 
+                                        key={index} 
+                                        onClick={() => handleToggleSubtask(index)} 
+                                        className="bg-gray-900/70 p-3 rounded-lg cursor-pointer border border-gray-700 hover:border-purple-500 transition-all flex items-start gap-3"
+                                    >
+                                        <div className={`w-5 h-5 rounded-md flex-shrink-0 mt-1 flex items-center justify-center transition-colors ${selectedSubtasks.includes(index) ? 'bg-purple-500' : 'bg-gray-700'}`}>
+                                            {selectedSubtasks.includes(index) && (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-white">{subtask.title}</p>
+                                            <p className="text-sm text-gray-400">{subtask.description}</p>
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border mt-2 inline-block ${
+                                                subtask.difficulty === GoalDifficulty.Easy ? 'border-green-400 text-green-300' :
+                                                subtask.difficulty === GoalDifficulty.Medium ? 'border-yellow-400 text-yellow-300' :
+                                                subtask.difficulty === GoalDifficulty.Hard ? 'border-orange-400 text-orange-300' :
+                                                'border-red-400 text-red-300'
+                                            }`}>
+                                                {subtask.difficulty}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {subtaskError && <p className="text-red-400 bg-red-900/30 p-2 rounded text-sm">{subtaskError}</p>}
+
+                    <div className="flex justify-between space-x-3 pt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition">
+                            Cancel
                         </button>
+                        
+                        <div className="flex space-x-2">
+                            {!showSubtasks && !goalToEdit && (
+                                <button 
+                                    type="button" 
+                                    onClick={handleGenerateSubtasks} 
+                                    disabled={isGeneratingSubtasks} 
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-800 transition flex items-center"
+                                >
+                                    {isGeneratingSubtasks ? <SpinnerIcon className="w-5 h-5 mr-2" /> : <SparklesIcon className="w-5 h-5 mr-2" />}
+                                    Recommend Subtasks
+                                </button>
+                            )}
+                            
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting} 
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-800 transition flex items-center"
+                            >
+                                {isSubmitting && <SpinnerIcon className="w-5 h-5 mr-2" />}
+                                {showSubtasks ? `Save with ${selectedSubtasks.length} Subtasks` : 'Save Goal'}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
