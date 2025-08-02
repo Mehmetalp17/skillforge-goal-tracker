@@ -1,5 +1,10 @@
-// In api/controllers/aiController.js
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import asyncHandler from '../middleware/asyncHandler.js';
+import ErrorResponse from '../utils/errorResponse.js';
 
+// @desc    Generate goal suggestions using AI
+// @route   POST /api/ai/suggest-goals
+// @access  Private
 export const suggestGoals = asyncHandler(async (req, res, next) => {
     const { prompt } = req.body;
 
@@ -31,6 +36,8 @@ export const suggestGoals = asyncHandler(async (req, res, next) => {
             endDate = dateMatch[2];
         }
 
+        console.log(`Generating suggestions for: "${prompt}" with timeframe ${startDate} to ${endDate}`);
+
         const fullPrompt = `You are an expert project manager. A user wants to achieve this goal: "${prompt}". 
 Break it down into 3 to 5 smaller, concrete, and actionable sub-goals. 
 
@@ -47,25 +54,48 @@ The entire timeline should span from ${startDate} to ${endDate}.
 
 Respond ONLY with a valid JSON array of objects. Each object must have "title", "description", "difficulty", "durationDays", "suggestedStartDate", and "suggestedEndDate" properties. Do not include any other text, markdown, or explanation.`;
 
+        console.log("Sending prompt to Gemini API...");
         const result = await model.generateContent(fullPrompt);
+        console.log("Received response from Gemini API");
         const response = await result.response;
         
         let text = response.text();
+        console.log("Raw response text:", text.substring(0, 100) + "..."); // Just log the beginning for debugging
 
         // Clean up the response to ensure it's valid JSON
         const startIndex = text.indexOf('[');
         const endIndex = text.lastIndexOf(']');
 
         if (startIndex === -1 || endIndex === -1) {
+            console.error("Invalid JSON format in response: no array brackets found");
             throw new Error("AI response did not contain a valid JSON array.");
         }
         
         const jsonText = text.substring(startIndex, endIndex + 1);
-        const suggestions = JSON.parse(jsonText);
-
-        res.status(200).json({ success: true, data: suggestions });
+        console.log("Extracted JSON text:", jsonText.substring(0, 100) + "..."); // Just log the beginning
+        
+        try {
+            const suggestions = JSON.parse(jsonText);
+            console.log(`Successfully parsed ${suggestions.length} suggestions`);
+            
+            // Validate the structure of each suggestion
+            suggestions.forEach((suggestion, index) => {
+                if (!suggestion.title || !suggestion.description || !suggestion.difficulty) {
+                    console.error(`Suggestion #${index} is missing required fields:`, suggestion);
+                }
+            });
+            
+            res.status(200).json({ success: true, data: suggestions });
+        } catch (parseError) {
+            console.error("JSON parse error:", parseError);
+            console.error("JSON text that failed to parse:", jsonText);
+            throw new Error("Failed to parse AI response as JSON.");
+        }
     } catch (error) {
-        console.error('Gemini API Error:', error);
-        return next(new ErrorResponse('Failed to generate goal suggestions. Please try again.', 500));
+        console.error('Gemini API Error:', error.message);
+        if (error.response) {
+            console.error('Error details:', error.response);
+        }
+        return next(new ErrorResponse('Failed to generate suggestions from the AI service.', 500));
     }
 });
