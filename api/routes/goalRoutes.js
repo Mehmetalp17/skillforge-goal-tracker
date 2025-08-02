@@ -5,7 +5,8 @@ import {
     createGoal,
     updateGoal,
     deleteGoal,
-    getSubGoals
+    getSubGoals,
+    forceDeleteGoal
 } from '../controllers/goalController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
