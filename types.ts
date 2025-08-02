@@ -33,9 +33,9 @@ export interface SuggestedGoal {
   title: string;
   description: string;
   difficulty: GoalDifficulty;
-  durationDays: number;
-  suggestedStartDate?: string; // ISO date string
-  suggestedEndDate?: string;   // ISO date string
+  durationDays?: number;
+  suggestedStartDate?: string;
+  suggestedEndDate?: string;
 }
 
 export interface User {
