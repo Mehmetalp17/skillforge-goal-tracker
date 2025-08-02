@@ -84,6 +84,40 @@ export const deleteGoal = asyncHandler(async (req, res, next) => {
     res.status(200).json({ success: true, data: {} });
 });
 
+// @desc    Force delete goal and all its sub-goals
+// @route   DELETE /api/goals/:id/force
+// @access  Private
+export const forceDeleteGoal = asyncHandler(async (req, res, next) => {
+    const goal = await LearningGoal.findById(req.params.id);
+    
+    if (!goal) {
+        return next(new ErrorResponse(`Goal not found with id of ${req.params.id}`, 404));
+    }
+    
+    if (goal.owner.toString() !== req.user.id) {
+        return next(new ErrorResponse(`Not authorized to delete this goal`, 403));
+    }
+    
+    // Function to recursively delete a goal and all its sub-goals
+    const recursiveDelete = async (goalId) => {
+        // Get all sub-goals
+        const subGoals = await LearningGoal.find({ parentGoal: goalId });
+        
+        // Delete all sub-goals recursively
+        for (const subGoal of subGoals) {
+            await recursiveDelete(subGoal._id);
+        }
+        
+        // Delete the goal itself
+        await LearningGoal.findByIdAndDelete(goalId);
+    };
+    
+    // Start the recursive deletion
+    await recursiveDelete(req.params.id);
+    
+    res.status(200).json({ success: true, data: {} });
+});
+
 // @desc    Get all sub-goals for a parent goal
 // @route   GET /api/goals/:parentId/subgoals
 // @access  Private
@@ -91,3 +125,5 @@ export const getSubGoals = asyncHandler(async (req, res, next) => {
     const subGoals = await LearningGoal.find({ owner: req.user.id, parentGoal: req.params.parentId });
     res.status(200).json({ success: true, count: subGoals.length, data: subGoals });
 });
+
+

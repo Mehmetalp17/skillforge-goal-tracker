@@ -25,11 +25,28 @@ const GoalList: React.FC<GoalListProps> = ({ goals, allGoalsForForm, onGoalUpdat
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this goal? This action cannot be undone.')) {
-            try {
-                await goalService.deleteGoal(id, token);
-                onGoalUpdate();
-            } catch (err: any) {
+        const confirmation = window.confirm('Are you sure you want to delete this goal? This action cannot be undone.');
+        
+        if (!confirmation) return;
+        
+        try {
+            // First attempt to delete
+            await goalService.deleteGoal(id, token);
+            onGoalUpdate();
+        } catch (err: any) {
+            // If error contains message about sub-goals
+            if (err.message && err.message.includes('sub-goals')) {
+                const cascadeConfirmation = window.confirm(
+                    'This goal has sub-goals. Deleting it will also delete all of its sub-goals. Are you absolutely sure?'
+                );
+                
+                if (cascadeConfirmation) {
+                    // Call a different endpoint that forces deletion
+                    await goalService.forceDeleteGoal(id, token);
+                    onGoalUpdate();
+                }
+            } else {
+                // Regular error handling
                 setError(err.message || 'Failed to delete goal.');
                 setTimeout(() => setError(null), 5000);
             }

@@ -61,6 +61,19 @@ export const deleteGoal = async (id: string, token: string | null): Promise<{ me
     return { message: "Goal deleted successfully" };
 };
 
+// In services/goalService.ts
+export const forceDeleteGoal = async (id: string, token: string | null): Promise<{ message: string }> => {
+    const response = await fetch(`${API_URL}/${id}/force`, {
+        method: 'DELETE',
+        headers: getHeaders(token)
+    });
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete goal');
+    }
+    return { message: "Goal and all sub-goals deleted successfully" };
+};
+
 export const fetchSubGoals = async (parentId: string, token: string | null): Promise<LearningGoal[]> => {
     const response = await fetch(`${API_URL}/${parentId}/subgoals`, { headers: getHeaders(token) });
     return handleResponse(response);

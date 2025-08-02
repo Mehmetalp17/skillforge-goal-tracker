@@ -26,4 +26,8 @@ router.route('/:id')
 router.route('/:parentId/subgoals')
     .get(getSubGoals);
 
+// In api/routes/goalRoutes.js
+router.route('/:id/force')
+    .delete(forceDeleteGoal);
+
 export default router;
