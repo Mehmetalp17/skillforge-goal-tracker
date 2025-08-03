@@ -100,10 +100,20 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
             setSubtaskError('Please fill in the title, description, start date and target end date first.');
             return;
         }
-
+        
+        // Check if the date interval is at least 1 day
+        const startDate = new Date(formData.startDate);
+        const endDate = new Date(formData.targetEndDate);
+        const daysDifference = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDifference < 1) {
+            setSubtaskError('The time interval is too short to generate subtasks. Please set a target end date at least 1 day after the start date.');
+            return;
+        }
+    
         setIsGeneratingSubtasks(true);
         setSubtaskError('');
-
+    
         try {
             let prompt;
             
@@ -132,7 +142,7 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                     Create tasks that build on each other and represent a logical progression.
                     Each subtask should be concrete, specific, and achievable within a few days.`;
             }
-
+    
             const results = await aiService.fetchSuggestedGoals(prompt, token);
             setSuggestedSubtasks(results);
             setShowSubtasks(true);
