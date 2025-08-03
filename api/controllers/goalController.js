@@ -127,3 +127,59 @@ export const getSubGoals = asyncHandler(async (req, res, next) => {
 });
 
 
+// In goalController.js
+export const batchDeleteGoals = asyncHandler(async (req, res, next) => {
+    const { goalIds, forceDelete } = req.body;
+    
+    if (!Array.isArray(goalIds) || goalIds.length === 0) {
+        return next(new ErrorResponse('No goal IDs provided', 400));
+    }
+    
+    const results = {
+        success: [],
+        failed: []
+    };
+    
+    for (const goalId of goalIds) {
+        try {
+            const goal = await LearningGoal.findById(goalId);
+            
+            if (!goal) {
+                results.failed.push({id: goalId, error: 'Goal not found'});
+                continue;
+            }
+            
+            if (goal.owner.toString() !== req.user.id) {
+                results.failed.push({id: goalId, error: 'Not authorized'});
+                continue;
+            }
+            
+            const subGoalCount = await LearningGoal.countDocuments({ parentGoal: goalId });
+            
+            if (subGoalCount > 0 && !forceDelete) {
+                results.failed.push({id: goalId, error: 'Has sub-goals'});
+                continue;
+            }
+            
+            if (forceDelete) {
+                // Use the recursive delete function
+                await recursiveDelete(goalId);
+            } else {
+                await goal.deleteOne();
+            }
+            
+            results.success.push(goalId);
+        } catch (err) {
+            results.failed.push({id: goalId, error: err.message});
+        }
+    }
+    
+    res.status(200).json({
+        success: true,
+        data: results
+    });
+});
+
+// Then add a route in goalRoutes.js
+router.route('/batch')
+    .post(batchDeleteGoals);

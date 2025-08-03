@@ -78,3 +78,18 @@ export const fetchSubGoals = async (parentId: string, token: string | null): Pro
     const response = await fetch(`${API_URL}/${parentId}/subgoals`, { headers: getHeaders(token) });
     return handleResponse(response);
 };
+
+
+// In goalService.ts
+export const batchDeleteGoals = async (
+    goalIds: string[], 
+    forceDelete: boolean = false, 
+    token: string | null
+): Promise<any> => {
+    const response = await fetch(`${API_URL}/batch`, {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ goalIds, forceDelete })
+    });
+    return handleResponse(response);
+};
