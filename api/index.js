@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/db.js';
 import errorHandler from './middleware/errorHandler.js';
+import quoteRoutes from './routes/quoteRoutes.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -42,6 +43,7 @@ app.use(cors(corsOptions));
 app.use('/api/auth', authRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/quotes', quoteRoutes);
 
 // Error handler middleware (should be the last piece of middleware)
 app.use(errorHandler);
