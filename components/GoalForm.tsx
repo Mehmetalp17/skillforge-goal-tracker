@@ -141,16 +141,34 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
             ...formData,
             isArchived: false,
         };
-
+    
         try {
+            // Get selected subtasks
             const selectedTasks = selectedSubtasks.map(index => suggestedSubtasks[index]);
+            
+            // Sort the selected tasks by date (matching the behavior in DashboardPage)
+            const sortedSelectedTasks = [...selectedTasks].sort((a, b) => {
+                // If both have suggestedStartDate, compare them
+                if (a.suggestedStartDate && b.suggestedStartDate) {
+                    return new Date(a.suggestedStartDate).getTime() - new Date(b.suggestedStartDate).getTime();
+                }
+                // If only one has suggestedStartDate, prioritize the one with a date
+                else if (a.suggestedStartDate) {
+                    return -1;
+                }
+                else if (b.suggestedStartDate) {
+                    return 1;
+                }
+                // If neither has suggestedStartDate, maintain original order
+                return 0;
+            });
             
             if (goalToEdit) {
                 await onSave({ ...goalToEdit, ...goalData });
                 // Handle subtasks separately if needed for edited goals
             } else {
                 if (onSaveWithSubtasks) {
-                    await onSaveWithSubtasks(goalData, selectedTasks);
+                    await onSaveWithSubtasks(goalData, sortedSelectedTasks);
                 }
             }
             
@@ -161,7 +179,6 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
             setIsSubmitting(false);
         }
     };
-
     if (!isOpen) return null;
     
     // Prevent selecting a goal and its descendants as its own parent
@@ -243,7 +260,25 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                         <div className="mt-6 border-t border-gray-700 pt-4">
                             <h3 className="text-lg font-semibold text-gray-200 mb-3">Recommended Subtasks:</h3>
                             <div className="space-y-3 max-h-60 overflow-y-auto p-2">
-                                {suggestedSubtasks.map((subtask, index) => (
+
+                                {suggestedSubtasks
+                                .sort((a, b) => {
+                                    // If both have suggestedStartDate, compare them
+                                    if (a.suggestedStartDate && b.suggestedStartDate) {
+                                        return new Date(a.suggestedStartDate).getTime() - new Date(b.suggestedStartDate).getTime();
+                                    }
+                                    // If only one has suggestedStartDate, prioritize the one with a date
+                                    else if (a.suggestedStartDate) {
+                                        return -1;
+                                    }
+                                    else if (b.suggestedStartDate) {
+                                        return 1;
+                                    }
+                                    // If neither has suggestedStartDate, maintain original order
+                                    return 0;
+                                })
+                                
+                                .map((subtask, index) => (
                                     <div 
                                         key={index} 
                                         onClick={() => handleToggleSubtask(index)} 
@@ -257,17 +292,33 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-white">{subtask.title}</p>
-                                            <p className="text-sm text-gray-400">{subtask.description}</p>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border mt-2 inline-block ${
-                                                subtask.difficulty === GoalDifficulty.Easy ? 'border-green-400 text-green-300' :
-                                                subtask.difficulty === GoalDifficulty.Medium ? 'border-yellow-400 text-yellow-300' :
-                                                subtask.difficulty === GoalDifficulty.Hard ? 'border-orange-400 text-orange-300' :
-                                                'border-red-400 text-red-300'
-                                            }`}>
-                                                {subtask.difficulty}
+                                    <p className="font-medium text-white">{subtask.title}</p>
+                                    <p className="text-sm text-gray-400">{subtask.description}</p>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border mt-2 inline-block ${
+                                            subtask.difficulty === GoalDifficulty.Easy ? 'border-green-400 text-green-300' :
+                                            subtask.difficulty === GoalDifficulty.Medium ? 'border-yellow-400 text-yellow-300' :
+                                            subtask.difficulty === GoalDifficulty.Hard ? 'border-orange-400 text-orange-300' :
+                                            'border-red-400 text-red-300'
+                                        }`}>
+                                            {subtask.difficulty}
+                                        </span>
+                                        
+                                        {/* Add duration display */}
+                                        {subtask.durationDays && (
+                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-blue-400 text-blue-300 inline-block">
+                                                {subtask.durationDays} days
                                             </span>
-                                        </div>
+                                        )}
+                                        
+                                        {/* Add date range display */}
+                                        {subtask.suggestedStartDate && subtask.suggestedEndDate && (
+                                            <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-green-400 text-green-300 inline-block">
+                                                {new Date(subtask.suggestedStartDate).toLocaleDateString()} - {new Date(subtask.suggestedEndDate).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                                     </div>
                                 ))}
                             </div>

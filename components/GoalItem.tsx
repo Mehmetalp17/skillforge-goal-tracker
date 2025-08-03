@@ -48,14 +48,20 @@ const GoalItem = ({ goal, allGoalsForForm, onEdit, onDelete, onAddSubGoal, onGoa
         setError('');
         try {
             const data = await goalService.fetchSubGoals(goal._id, token);
-            setSubGoals(data);
+            
+            // Sort subgoals by start date
+            const sortedData = [...data].sort((a, b) => 
+                new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+            );
+            
+            setSubGoals(sortedData);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch sub-goals');
         } finally {
             setIsLoading(false);
         }
     }, [isExpanded, goal._id, token]);
-
+    
     useEffect(() => {
         fetchSubGoals();
     }, [isExpanded, fetchSubGoals]);
