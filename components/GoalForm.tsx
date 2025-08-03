@@ -146,27 +146,29 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
             // Get selected subtasks
             const selectedTasks = selectedSubtasks.map(index => suggestedSubtasks[index]);
             
-            // Sort the selected tasks by date (matching the behavior in DashboardPage)
+            // Sort the selected tasks by date
             const sortedSelectedTasks = [...selectedTasks].sort((a, b) => {
-                // If both have suggestedStartDate, compare them
+                // Sorting logic remains the same
                 if (a.suggestedStartDate && b.suggestedStartDate) {
                     return new Date(a.suggestedStartDate).getTime() - new Date(b.suggestedStartDate).getTime();
-                }
-                // If only one has suggestedStartDate, prioritize the one with a date
-                else if (a.suggestedStartDate) {
+                } else if (a.suggestedStartDate) {
                     return -1;
-                }
-                else if (b.suggestedStartDate) {
+                } else if (b.suggestedStartDate) {
                     return 1;
                 }
-                // If neither has suggestedStartDate, maintain original order
                 return 0;
             });
             
             if (goalToEdit) {
+                // First update the existing goal
                 await onSave({ ...goalToEdit, ...goalData });
-                // Handle subtasks separately if needed for edited goals
+                
+                // Then add the subtasks to the existing goal if there are any selected
+                if (onSaveWithSubtasks && sortedSelectedTasks.length > 0) {
+                    await onSaveWithSubtasks({ ...goalData, _id: goalToEdit._id }, sortedSelectedTasks);
+                }
             } else {
+                // This is a new goal, create it with subtasks
                 if (onSaveWithSubtasks) {
                     await onSaveWithSubtasks(goalData, sortedSelectedTasks);
                 }

@@ -111,22 +111,33 @@ const DashboardPage = () => {
 
     // Update the handleSaveGoalWithSubtasks function in DashboardPage.tsx
     const handleSaveGoalWithSubtasks = async (
-        goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'>, 
+        goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal, 
         subtasks: SuggestedGoal[]
     ) => {
         if (!token) return;
         
         try {
-            // First save the main goal
-            const newGoal = await goalService.createGoal(goalData, token);
+            let parentGoalId;
+            
+            // Check if this is an existing goal or a new one
+            if ('_id' in goalData) {
+                // This is an existing goal, use its ID directly
+                parentGoalId = goalData._id;
+                // Update the existing goal
+                await goalService.updateGoal(goalData._id, goalData, token);
+            } else {
+                // This is a new goal, create it first
+                const newGoal = await goalService.createGoal(goalData, token);
+                parentGoalId = newGoal._id;
+            }
             
             // Calculate date ranges for better distribution
             const startDate = new Date(goalData.startDate);
             const endDate = new Date(goalData.targetEndDate);
-            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            const totalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
             
-            // How many days to allocate per subtask
-            const daysPerSubtask = Math.floor(totalDays / subtasks.length);
+            // How many days to allocate per subtask (minimum 1 day)
+            const daysPerSubtask = Math.max(1, Math.floor(totalDays / subtasks.length));
             
             // Create subtasks with distributed dates and time intervals
             const subtaskPromises = subtasks
@@ -183,7 +194,7 @@ const DashboardPage = () => {
                         startDate: formattedStartDate,
                         targetEndDate: formattedEndDate,
                         progressPercentage: 0,
-                        parentGoal: newGoal._id,  // Set parent goal correctly
+                        parentGoal: parentGoalId,  // Set parent goal correctly
                         isArchived: false,
                     };
                     
