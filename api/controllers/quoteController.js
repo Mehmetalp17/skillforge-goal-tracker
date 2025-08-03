@@ -1,4 +1,7 @@
 // In api/controllers/quoteController.js
+import asyncHandler from '../middleware/asyncHandler.js';
+import fetch from 'node-fetch';
+
 let cachedQuote = null;
 let cacheTimestamp = null;
 

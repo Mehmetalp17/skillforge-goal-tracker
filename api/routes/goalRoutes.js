@@ -6,7 +6,8 @@ import {
     updateGoal,
     deleteGoal,
     getSubGoals,
-    forceDeleteGoal
+    forceDeleteGoal,
+    batchDeleteGoals // Import this
 } from '../controllers/goalController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -30,5 +31,9 @@ router.route('/:parentId/subgoals')
 // In api/routes/goalRoutes.js
 router.route('/:id/force')
     .delete(forceDeleteGoal);
+
+// Then add a route in goalRoutes.js
+router.route('/batch')
+    .post(batchDeleteGoals);
 
 export default router;

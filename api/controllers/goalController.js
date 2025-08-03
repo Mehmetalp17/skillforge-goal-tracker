@@ -179,7 +179,3 @@ export const batchDeleteGoals = asyncHandler(async (req, res, next) => {
         data: results
     });
 });
-
-// Then add a route in goalRoutes.js
-router.route('/batch')
-    .post(batchDeleteGoals);
