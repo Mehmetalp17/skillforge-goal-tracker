@@ -9,6 +9,7 @@ import quoteRoutes from './routes/quoteRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import goalRoutes from './routes/goalRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import { defaultRateLimiter } from './middleware/rateLimitMiddleware.js';
 
 // Load env vars. This will look for a .env file in the current directory (api/).
 dotenv.config();
@@ -38,6 +39,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(defaultRateLimiter);
 
 // Mount routers
 app.use('/api/auth', authRoutes);

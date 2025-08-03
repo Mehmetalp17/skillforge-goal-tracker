@@ -11,7 +11,7 @@ interface GoalFormProps {
     goalToEdit?: LearningGoal | null;
     parentId?: string | null;
     allGoals: LearningGoal[];
-    onSaveWithSubtasks?: (goal: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'>, subtasks: SuggestedGoal[]) => Promise<void>;
+    onSaveWithSubtasks?: (goal: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal, subtasks: SuggestedGoal[]) => Promise<void>;
 }
 
 const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoals, onSaveWithSubtasks }: GoalFormProps) => {
@@ -95,7 +95,6 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
         }
     };
 
-    // Update the handleGenerateSubtasks function in GoalForm.tsx
     const handleGenerateSubtasks = async () => {
         if (!formData.title || !formData.description || !formData.startDate || !formData.targetEndDate) {
             setSubtaskError('Please fill in the title, description, start date and target end date first.');
@@ -106,12 +105,33 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
         setSubtaskError('');
 
         try {
-            const prompt = `Generate progressive subtasks for this goal: "${formData.title}". 
-                        Description: ${formData.description}. 
-                        The subtasks should span from ${formData.startDate} to ${formData.targetEndDate} 
-                        and show a clear progression toward completing the main goal.
-                        Create tasks that build on each other and represent a logical progression.
-                        Each subtask should be concrete, specific, and achievable within a few days.`;
+            let prompt;
+            
+            if (goalToEdit) {
+                // Special prompt for breaking down an existing subtask
+                prompt = `Break down this specific subtask: "${goalToEdit.title}" into 3-5 more detailed, actionable steps.
+                    
+                    Context about this subtask: ${goalToEdit.description}
+                    
+                    These detailed steps should span from ${formData.startDate} to ${formData.targetEndDate} 
+                    and represent a clear progression toward completing this specific subtask.
+                    
+                    For each detailed step:
+                    1. Create a concise but descriptive title (what to do)
+                    2. Add a detailed but brief description (how to do it, under 200 characters)
+                    3. Assign an appropriate difficulty (Easy, Medium, Hard, or Expert)
+                    4. Suggest realistic start and end dates within the parent timeframe
+                    
+                    Ensure each step is concrete, specific, immediately actionable, and builds logically on previous steps.`;
+            } else {
+                // Original prompt for new goals
+                prompt = `Generate progressive subtasks for this goal: "${formData.title}". 
+                    Description: ${formData.description}. 
+                    The subtasks should span from ${formData.startDate} to ${formData.targetEndDate} 
+                    and show a clear progression toward completing the main goal.
+                    Create tasks that build on each other and represent a logical progression.
+                    Each subtask should be concrete, specific, and achievable within a few days.`;
+            }
 
             const results = await aiService.fetchSuggestedGoals(prompt, token);
             setSuggestedSubtasks(results);
@@ -193,6 +213,7 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
       }
       return descendants;
     }
+    
 
     const unselectableParentIds = goalToEdit ? [goalToEdit._id, ...getDescendants(goalToEdit._id)] : [];
     const availableParents = allGoals.filter(g => !unselectableParentIds.includes(g._id));
@@ -201,6 +222,16 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <h2 className="text-2xl font-bold text-white mb-4">{goalToEdit ? 'Edit Goal' : 'Create New Goal'}</h2>
+                
+                {goalToEdit && (
+                    <div className="text-indigo-300 bg-indigo-900/30 p-3 rounded-md mb-4">
+                        <h3 className="font-medium mb-1">Editing: {goalToEdit.title}</h3>
+                        <p className="text-sm">
+                            Tip: Use the "Break Down with AI" button to automatically generate more detailed subtasks for this goal.
+                        </p>
+                    </div>
+                )}
+                
                 <form onSubmit={showSubtasks ? handleSaveWithSubtasks : handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium text-gray-300">Title</label>
@@ -213,14 +244,12 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="startDate" className="block text-sm font-medium text-gray-300">Start Date</label>
-                            <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white" />
+                            <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white" />
                         </div>
                         <div>
                             <label htmlFor="targetEndDate" className="block text-sm font-medium text-gray-300">Target End Date</label>
-                            <input type="date" name="targetEndDate" id="targetEndDate" value={formData.targetEndDate} onChange={handleChange} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white" />
+                            <input type="date" name="targetEndDate" id="targetEndDate" value={formData.targetEndDate} onChange={handleChange} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white" />
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="status" className="block text-sm font-medium text-gray-300">Status</label>
                             <select name="status" id="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white">
@@ -260,7 +289,11 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                     {/* Show subtasks section if they're generated */}
                     {showSubtasks && suggestedSubtasks.length > 0 && (
                         <div className="mt-6 border-t border-gray-700 pt-4">
-                            <h3 className="text-lg font-semibold text-gray-200 mb-3">Recommended Subtasks:</h3>
+                            <h3 className="text-lg font-semibold text-gray-200 mb-3">
+                                {goalToEdit 
+                                    ? `Detailed Steps for "${goalToEdit.title}":`
+                                    : "Recommended Subtasks:"}
+                            </h3>
                             <div className="space-y-3 max-h-60 overflow-y-auto p-2">
 
                                 {suggestedSubtasks
@@ -335,15 +368,15 @@ const GoalForm = ({ isOpen, onClose, onSave, goalToEdit, parentId = null, allGoa
                         </button>
                         
                         <div className="flex space-x-2">
-                            {!showSubtasks && !goalToEdit && (
+                            {!showSubtasks && (
                                 <button 
                                     type="button" 
-                                    onClick={handleGenerateSubtasks} 
+                                    onClick={handleGenerateSubtasks}
                                     disabled={isGeneratingSubtasks} 
                                     className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-800 transition flex items-center"
                                 >
                                     {isGeneratingSubtasks ? <SpinnerIcon className="w-5 h-5 mr-2" /> : <SparklesIcon className="w-5 h-5 mr-2" />}
-                                    Recommend Subtasks
+                                    {goalToEdit ? 'Break Down with AI' : 'Recommend Subtasks'}
                                 </button>
                             )}
                             
