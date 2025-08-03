@@ -7,6 +7,8 @@ import ProtectedRoute from './components/ProtectedRoute.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import RegisterPage from './pages/RegisterPage.tsx';
 import DashboardPage from './pages/DashboardPage.tsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.tsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.tsx';
 
 const AppContent = () => {
     const { isAuthenticated } = useAuth();
@@ -17,6 +19,8 @@ const AppContent = () => {
                 <Routes>
                     <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <LoginPage />} />
                     <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <RegisterPage />} />
+                    <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/" /> : <ForgotPasswordPage />} />
+                    <Route path="/reset-password/:resetToken" element={isAuthenticated ? <Navigate to="/" /> : <ResetPasswordPage />} />
                     
                     <Route path="/" element={<ProtectedRoute />}>
                         <Route path="/" element={<DashboardPage />} />
