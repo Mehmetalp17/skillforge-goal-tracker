@@ -88,8 +88,8 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
     
     await user.save({ validateBeforeSave: false });
     
-    // Create reset URL - Use your frontend URL from env
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    // To this (note the # symbol for HashRouter)
+    const resetUrl = `${process.env.CLIENT_URL}/#/reset-password/${resetToken}`;
     
     // Create email content with branded HTML
     const html = `
