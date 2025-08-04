@@ -16,6 +16,8 @@ interface Quote {
 const DashboardPage = () => {
     const [allGoals, setAllGoals] = useState<LearningGoal[]>([]);
     const [topLevelGoals, setTopLevelGoals] = useState<LearningGoal[]>([]);
+    const [filteredGoals, setFilteredGoals] = useState<LearningGoal[]>([]);
+    const [statusFilter, setStatusFilter] = useState<GoalStatus | 'All'>('All');
     const [isLoadingGoals, setIsLoadingGoals] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -23,9 +25,16 @@ const DashboardPage = () => {
     const [quote, setQuote] = useState<Quote | null>(null);
     const [isLoadingQuote, setIsLoadingQuote] = useState(true);
     
-    // --- THIS IS THE MISSING LINE ---
     const { token } = useAuth(); 
-    // --------------------------------
+
+    // Filter goals whenever topLevelGoals or statusFilter changes
+    useEffect(() => {
+        if (statusFilter === 'All') {
+            setFilteredGoals(topLevelGoals);
+        } else {
+            setFilteredGoals(topLevelGoals.filter(goal => goal.status === statusFilter));
+        }
+    }, [topLevelGoals, statusFilter]);
 
     useEffect(() => {
         const getQuote = async () => {
@@ -223,38 +232,87 @@ const DashboardPage = () => {
                 <div className="flex items-center space-x-3">
                     <button
                         onClick={() => setIsAiModalOpen(true)}
-                        className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center space-x-2"
                     >
-                        <SparklesIcon />
-                        <span>Generate with AI</span>
+                        <span>✨</span>
+                        <span>AI Assistant</span>
                     </button>
                     <button
                         onClick={openNewGoalForm}
-                        className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center space-x-2"
                     >
-                        <PlusIcon />
-                        <span>New Goal</span>
+                        <span>+</span>
+                        <span>Add Goal</span>
                     </button>
                 </div>
             </div>
 
-            {isLoadingGoals ? (
-                <div className="flex justify-center items-center h-64">
-                    <SpinnerIcon className="w-12 h-12 text-indigo-400" />
+            {/* Filter Controls */}
+            <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="flex flex-wrap items-center gap-4">
+                    <label className="text-sm font-medium text-gray-300">Filter by Status:</label>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as GoalStatus | 'All')}
+                        className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                        <option value="All">All Goals</option>
+                        {Object.values(GoalStatus).map(status => (
+                            <option key={status} value={status}>{status}</option>
+                        ))}
+                    </select>
+                    
+                    {/* Goal count display */}
+                    <span className="text-sm text-gray-400">
+                        Showing {filteredGoals.length} of {topLevelGoals.length} goals
+                    </span>
+                    
+                    {/* Clear filter button */}
+                    {statusFilter !== 'All' && (
+                        <button
+                            onClick={() => setStatusFilter('All')}
+                            className="px-3 py-1 text-xs bg-gray-600 text-white rounded-full hover:bg-gray-500 transition"
+                        >
+                            Clear Filter
+                        </button>
+                    )}
                 </div>
-            ) : error ? (
-                <div className="bg-red-900/50 text-red-300 p-4 rounded-md text-center">
-                    <p>{error}</p>
+            </div>
+
+            {error && (
+                <div className="mb-6 p-4 bg-red-900/50 text-red-300 rounded-md text-center">
+                    {error}
                     <button onClick={fetchAllGoals} className="mt-2 text-indigo-300 hover:underline">Try again</button>
                 </div>
-            ) : allGoals.length === 0 ? (
+            )}
+
+            {isLoadingGoals ? (
+                <div className="flex justify-center py-16">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                </div>
+            ) : error ? (
+                <div className="text-center py-16 px-4 bg-red-900/50 rounded-lg border border-red-700">
+                    <h3 className="text-xl font-medium text-red-300">Failed to load goals</h3>
+                    <p className="text-red-400 mt-2">{error}</p>
+                    <button onClick={fetchAllGoals} className="mt-2 text-indigo-300 hover:underline">Try again</button>
+                </div>
+            ) : filteredGoals.length === 0 ? (
                 <div className="text-center py-16 px-4 bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-700">
-                    <h3 className="text-xl font-medium text-white">No goals here... yet!</h3>
-                    <p className="text-gray-400 mt-2">Create your first learning goal or use AI to brainstorm ideas.</p>
+                    {statusFilter === 'All' ? (
+                        <>
+                            <h3 className="text-xl font-medium text-white">No goals here... yet!</h3>
+                            <p className="text-gray-400 mt-2">Create your first learning goal or use AI to brainstorm ideas.</p>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-xl font-medium text-white">No {statusFilter.toLowerCase()} goals found</h3>
+                            <p className="text-gray-400 mt-2">Try selecting a different status filter or create new goals.</p>
+                        </>
+                    )}
                 </div>
             ) : (
                 <GoalList 
-                    goals={topLevelGoals}
+                    goals={filteredGoals}
                     allGoalsForForm={allGoals}
                     onGoalUpdate={fetchAllGoals}
                 />

@@ -3,23 +3,20 @@ import rateLimit from 'express-rate-limit';
 import MongoStore from 'rate-limit-mongo';
 import ErrorResponse from '../utils/errorResponse.js';
 
-// Create a function that generates a MongoDB store
-// This ensures the MONGO_URI from process.env is available when needed
-const createMongoStore = (options = {}) => {
-  // Only create the store if we're not in development mode
+// Lazy loading function - only creates store when actually needed
+const getStore = (options = {}) => {
   if (process.env.NODE_ENV === 'development') {
     return undefined; // Use memory store in development
   }
   
   return new MongoStore({
-    uri: process.env.MONGO_URI, // This will be available when the function is called
+    uri: process.env.MONGO_URI,
     collectionName: 'rate-limits',
     expireTimeMs: 60 * 60 * 1000, // 1 hour by default
     onError: (err) => {
       console.error('Rate limit MongoDB error:', err);
-      // Continue without failing the app
     },
-    ...options // Allow overriding defaults
+    ...options
   });
 };
 
@@ -36,17 +33,21 @@ export const aiRateLimiter = rateLimit({
   handler: (req, res, next, options) => {
     next(new ErrorResponse(options.message.error, 429));
   },
-  // Skip rate limiting in development mode
   skip: (req, res) => process.env.NODE_ENV === 'development',
-  // Create the store dynamically
-  store: process.env.NODE_ENV !== 'development' ? 
-    createMongoStore() : undefined
+  // Use lazy loading
+  store: undefined, // Will be set dynamically
+  onLimitReached: () => {
+    // Initialize store on first use if needed
+    if (!aiRateLimiter.store && process.env.NODE_ENV !== 'development') {
+      aiRateLimiter.store = getStore();
+    }
+  }
 });
 
 // Default rate limiter for all routes
 export const defaultRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100,
   message: {
     success: false,
     error: 'Too many requests. Please try again later.'
@@ -57,16 +58,13 @@ export const defaultRateLimiter = rateLimit({
     next(new ErrorResponse(options.message.error, 429));
   },
   skip: (req, res) => process.env.NODE_ENV === 'development',
-  // Create the store dynamically with different expiration
-  store: process.env.NODE_ENV !== 'development' ? 
-    createMongoStore({ expireTimeMs: 15 * 60 * 1000 }) : undefined
+  store: undefined
 });
 
 // Per-user rate limiting
 export const userBasedAiRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 15, // limit each user to 15 requests per hour
-  // Use the user ID as the rate limit key
+  windowMs: 60 * 60 * 1000,
+  max: 15,
   keyGenerator: (req) => req.user.id,
   message: {
     success: false, 
@@ -78,7 +76,17 @@ export const userBasedAiRateLimiter = rateLimit({
     next(new ErrorResponse(options.message.error, 429));
   },
   skip: (req, res) => process.env.NODE_ENV === 'development',
-  // Create the store dynamically with a different collection name
-  store: process.env.NODE_ENV !== 'development' ? 
-    createMongoStore({ collectionName: 'user-rate-limits' }) : undefined
+  store: undefined
 });
+
+// Initialize stores after environment is loaded (call this in your main app file)
+export const initializeRateLimitStores = () => {
+  if (process.env.NODE_ENV !== 'development') {
+    aiRateLimiter.store = getStore();
+    defaultRateLimiter.store = getStore({ expireTimeMs: 15 * 60 * 1000 });
+    userBasedAiRateLimiter.store = getStore({ 
+      collectionName: 'user-rate-limits',
+      expireTimeMs: 60 * 60 * 1000 
+    });
+  }
+};
