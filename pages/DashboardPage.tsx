@@ -17,7 +17,7 @@ const DashboardPage = () => {
     const [allGoals, setAllGoals] = useState<LearningGoal[]>([]);
     const [topLevelGoals, setTopLevelGoals] = useState<LearningGoal[]>([]);
     const [filteredGoals, setFilteredGoals] = useState<LearningGoal[]>([]);
-    const [statusFilter, setStatusFilter] = useState<GoalStatus | 'All'>('All');
+    const [selectedStatuses, setSelectedStatuses] = useState<Set<GoalStatus>>(new Set());
     const [isLoadingGoals, setIsLoadingGoals] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -29,12 +29,16 @@ const DashboardPage = () => {
 
     // Filter goals whenever topLevelGoals or statusFilter changes
     useEffect(() => {
-        if (statusFilter === 'All') {
-            setFilteredGoals(topLevelGoals);
+        if (selectedStatuses.size === 0) {
+          // No filters selected = show all
+          setFilteredGoals(topLevelGoals);
         } else {
-            setFilteredGoals(topLevelGoals.filter(goal => goal.status === statusFilter));
+          // Filter by selected statuses
+          setFilteredGoals(topLevelGoals.filter(goal => 
+            selectedStatuses.has(goal.status)
+          ));
         }
-    }, [topLevelGoals, statusFilter]);
+      }, [topLevelGoals, selectedStatuses]);
 
     useEffect(() => {
         const getQuote = async () => {
@@ -249,34 +253,47 @@ const DashboardPage = () => {
 
             {/* Filter Controls */}
             <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                <div className="flex flex-wrap items-center gap-4">
-                    <label className="text-sm font-medium text-gray-300">Filter by Status:</label>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as GoalStatus | 'All')}
-                        className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                        <option value="All">All Goals</option>
-                        {Object.values(GoalStatus).map(status => (
-                            <option key={status} value={status}>{status}</option>
-                        ))}
-                    </select>
-                    
-                    {/* Goal count display */}
-                    <span className="text-sm text-gray-400">
-                        Showing {filteredGoals.length} of {topLevelGoals.length} goals
-                    </span>
-                    
-                    {/* Clear filter button */}
-                    {statusFilter !== 'All' && (
-                        <button
-                            onClick={() => setStatusFilter('All')}
-                            className="px-3 py-1 text-xs bg-gray-600 text-white rounded-full hover:bg-gray-500 transition"
-                        >
-                            Clear Filter
-                        </button>
-                    )}
+            <div className="flex flex-wrap items-center gap-4">
+                <label className="text-sm font-medium text-gray-300">Filter by Status:</label>
+                
+                <div className="flex flex-wrap gap-3">
+                {Object.values(GoalStatus).map(status => (
+                    <label key={status} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={selectedStatuses.has(status)}
+                        onChange={(e) => {
+                        const newSelected = new Set(selectedStatuses);
+                        if (e.target.checked) {
+                            newSelected.add(status);
+                        } else {
+                            newSelected.delete(status);
+                        }
+                        setSelectedStatuses(newSelected);
+                        }}
+                        className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-300">{status}</span>
+                    </label>
+                ))}
                 </div>
+                
+                {/* Goal count display */}
+                <span className="text-sm text-gray-400">
+                Showing {filteredGoals.length} of {topLevelGoals.length} goals
+                {selectedStatuses.size > 0 && ` (filtered by ${selectedStatuses.size} status${selectedStatuses.size > 1 ? 'es' : ''})`}
+                </span>
+                
+                {/* Clear all filters button */}
+                {selectedStatuses.size > 0 && (
+                <button
+                    onClick={() => setSelectedStatuses(new Set())}
+                    className="px-3 py-1 text-xs bg-gray-600 text-white rounded-full hover:bg-gray-500 transition"
+                >
+                    Clear All Filters
+                </button>
+                )}
+            </div>
             </div>
 
             {error && (
@@ -298,17 +315,21 @@ const DashboardPage = () => {
                 </div>
             ) : filteredGoals.length === 0 ? (
                 <div className="text-center py-16 px-4 bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-700">
-                    {statusFilter === 'All' ? (
-                        <>
-                            <h3 className="text-xl font-medium text-white">No goals here... yet!</h3>
-                            <p className="text-gray-400 mt-2">Create your first learning goal or use AI to brainstorm ideas.</p>
-                        </>
-                    ) : (
-                        <>
-                            <h3 className="text-xl font-medium text-white">No {statusFilter.toLowerCase()} goals found</h3>
-                            <p className="text-gray-400 mt-2">Try selecting a different status filter or create new goals.</p>
-                        </>
-                    )}
+                {selectedStatuses.size === 0 ? (
+                <>
+                    <h3 className="text-xl font-medium text-white">No goals here... yet!</h3>
+                    <p className="text-gray-400 mt-2">Create your first learning goal or use AI to brainstorm ideas.</p>
+                </>
+                ) : (
+                <>
+                    <h3 className="text-xl font-medium text-white">
+                    No goals found with selected status{selectedStatuses.size > 1 ? 'es' : ''}
+                    </h3>
+                    <p className="text-gray-400 mt-2">
+                    Try adjusting your filters or create new goals with the selected status{selectedStatuses.size > 1 ? 'es' : ''}.
+                    </p>
+                </>
+                )}
                 </div>
             ) : (
                 <GoalList 
