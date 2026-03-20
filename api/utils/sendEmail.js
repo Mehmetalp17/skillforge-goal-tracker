@@ -14,6 +14,10 @@ const sendEmail = async (options) => {
         subject: options.subject,
         text: options.message,
         html: options.html,
+    }).catch(err => {
+        console.error('Mailgun error status:', err.status);
+        console.error('Mailgun error details:', JSON.stringify(err.details || err.message));
+        throw err;
     });
 };
 
