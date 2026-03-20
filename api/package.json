@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@google/genai": "^0.12.0",
@@ -24,7 +25,8 @@
     "rate-limit-mongo": "^2.3.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": "22.x"

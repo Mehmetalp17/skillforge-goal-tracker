@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo 'No frontend tests configured'"
   },
   "dependencies": {
     "@google/genai": "^0.12.0",
