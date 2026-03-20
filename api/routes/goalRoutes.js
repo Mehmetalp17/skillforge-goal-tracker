@@ -9,7 +9,7 @@ import {
     forceDeleteGoal,
     batchDeleteGoals // Import this
 } from '../controllers/goalController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -28,12 +28,10 @@ router.route('/:id')
 router.route('/:parentId/subgoals')
     .get(getSubGoals);
 
-// In api/routes/goalRoutes.js
 router.route('/:id/force')
-    .delete(forceDeleteGoal);
+    .delete(authorize('manager'), forceDeleteGoal);
 
-// Then add a route in goalRoutes.js
 router.route('/batch')
-    .post(batchDeleteGoals);
+    .post(authorize('manager'), batchDeleteGoals);
 
 export default router;

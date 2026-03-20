@@ -42,6 +42,7 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  role: 'learner' | 'manager';
 }
 
 export interface AuthContextType {
