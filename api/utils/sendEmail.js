@@ -1,34 +1,20 @@
-// api/utils/sendEmail.js
-import nodemailer from 'nodemailer';
+import Mailgun from 'mailgun.js';
+import FormData from 'form-data';
 
 const sendEmail = async (options) => {
-  console.log('Attempting to send email to:', options.email);
-  
-  // Gmail-specific configuration
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',  // Use 'gmail' service instead of custom host/port
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD
-    }
-  });
+    const mailgun = new Mailgun(FormData);
+    const mg = mailgun.client({
+        username: 'api',
+        key: process.env.MAILGUN_API_KEY,
+    });
 
-  const message = {
-    from: `"${process.env.FROM_NAME}" <${process.env.SMTP_EMAIL}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-    html: options.html
-  };
-
-  try {
-    const info = await transporter.sendMail(message);
-    console.log('Email sent successfully:', info.messageId);
-    return info;
-  } catch (error) {
-    console.error('Detailed email sending error:', error);
-    throw error;
-  }
+    await mg.messages.create(process.env.MAILGUN_DOMAIN, {
+        from: `${process.env.FROM_NAME} <noreply@${process.env.MAILGUN_DOMAIN}>`,
+        to: options.email,
+        subject: options.subject,
+        text: options.message,
+        html: options.html,
+    });
 };
 
 export default sendEmail;
