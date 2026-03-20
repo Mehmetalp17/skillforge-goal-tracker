@@ -9,7 +9,7 @@ const sendEmail = async (options) => {
     });
 
     await mg.messages.create(process.env.MAILGUN_DOMAIN, {
-        from: `${process.env.FROM_NAME} <noreply@${process.env.MAILGUN_DOMAIN}>`,
+        from: `${process.env.FROM_NAME} <postmaster@${process.env.MAILGUN_DOMAIN}>`,
         to: options.email,
         subject: options.subject,
         text: options.message,
