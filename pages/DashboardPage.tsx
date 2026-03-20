@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.tsx'; // Make sure this is imported
 import * as goalService from '../services/goalService.ts';
 import { fetchDailyQuote } from '../services/quoteService.ts';
@@ -16,7 +16,6 @@ interface Quote {
 const DashboardPage = () => {
     const [allGoals, setAllGoals] = useState<LearningGoal[]>([]);
     const [topLevelGoals, setTopLevelGoals] = useState<LearningGoal[]>([]);
-    const [filteredGoals, setFilteredGoals] = useState<LearningGoal[]>([]);
     const [selectedStatuses, setSelectedStatuses] = useState<Set<GoalStatus>>(new Set());
     const [isLoadingGoals, setIsLoadingGoals] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -27,18 +26,10 @@ const DashboardPage = () => {
     
     const { token } = useAuth(); 
 
-    // Filter goals whenever topLevelGoals or statusFilter changes
-    useEffect(() => {
-        if (selectedStatuses.size === 0) {
-          // No filters selected = show all
-          setFilteredGoals(topLevelGoals);
-        } else {
-          // Filter by selected statuses
-          setFilteredGoals(topLevelGoals.filter(goal => 
-            selectedStatuses.has(goal.status)
-          ));
-        }
-      }, [topLevelGoals, selectedStatuses]);
+    const filteredGoals = useMemo(() => {
+        if (selectedStatuses.size === 0) return topLevelGoals;
+        return topLevelGoals.filter(goal => selectedStatuses.has(goal.status));
+    }, [topLevelGoals, selectedStatuses]);
 
     useEffect(() => {
         const getQuote = async () => {

@@ -14,7 +14,7 @@ interface GoalItemProps {
     onGoalUpdate: () => void;
     isSelectionMode?: boolean;
     isSelected?: boolean;
-    onToggleSelection?: () => void;
+    onToggleSelection?: (id: string) => void;
     selectedGoalIds?: string[];
   }
 const statusColors: Record<GoalStatus, string> = {
@@ -32,16 +32,16 @@ const difficultyColors: Record<GoalDifficulty, string> = {
     [GoalDifficulty.Expert]: 'text-red-400',
 };
 
-const GoalItem = ({ 
-    goal, 
-    allGoalsForForm, 
-    onEdit, 
-    onDelete, 
-    onAddSubGoal, 
+const GoalItem = React.memo(({
+    goal,
+    allGoalsForForm,
+    onEdit,
+    onDelete,
+    onAddSubGoal,
     onGoalUpdate,
     isSelectionMode = false,
     isSelected = false,
-    onToggleSelection = () => {},
+    onToggleSelection,
     selectedGoalIds = []
   }: GoalItemProps) => {
       const [isExpanded, setIsExpanded] = useState(false);
@@ -101,7 +101,7 @@ const GoalItem = ({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={onToggleSelection}
+                      onChange={() => onToggleSelection?.(goal._id)}
                       className="w-5 h-5 accent-indigo-600"
                     />
                   </div>
@@ -207,6 +207,28 @@ const GoalItem = ({
           )}
         </div>
       );
-};
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.goal._id === nextProps.goal._id &&
+    prevProps.goal.title === nextProps.goal.title &&
+    prevProps.goal.description === nextProps.goal.description &&
+    prevProps.goal.status === nextProps.goal.status &&
+    prevProps.goal.difficulty === nextProps.goal.difficulty &&
+    prevProps.goal.progressPercentage === nextProps.goal.progressPercentage &&
+    prevProps.goal.notes === nextProps.goal.notes &&
+    prevProps.goal.startDate === nextProps.goal.startDate &&
+    prevProps.goal.targetEndDate === nextProps.goal.targetEndDate &&
+    prevProps.goal.createdAt === nextProps.goal.createdAt &&
+    prevProps.isSelectionMode === nextProps.isSelectionMode &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.onEdit === nextProps.onEdit &&
+    prevProps.onDelete === nextProps.onDelete &&
+    prevProps.onAddSubGoal === nextProps.onAddSubGoal &&
+    prevProps.onGoalUpdate === nextProps.onGoalUpdate &&
+    prevProps.onToggleSelection === nextProps.onToggleSelection &&
+    prevProps.allGoalsForForm === nextProps.allGoalsForForm &&
+    prevProps.selectedGoalIds === nextProps.selectedGoalIds
+  );
+});
 
 export default GoalItem;

@@ -35,7 +35,7 @@ const difficultyColors: Record<GoalDifficulty, string> = {
     [GoalDifficulty.Expert]: 'text-red-400',
 };
 
-const GoalItem = ({ goal, allGoalsForForm, onEdit, onDelete, onAddSubGoal, onGoalUpdate }: GoalItemProps) => {
+const GoalItem = React.memo(({ goal, allGoalsForForm, onEdit, onDelete, onAddSubGoal, onGoalUpdate }: GoalItemProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [subGoals, setSubGoals] = useState<LearningGoal[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -182,4 +182,22 @@ const GoalItem = ({ goal, allGoalsForForm, onEdit, onDelete, onAddSubGoal, onGoa
             )}
         </div>
     );
-}
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.goal._id === nextProps.goal._id &&
+        prevProps.goal.title === nextProps.goal.title &&
+        prevProps.goal.description === nextProps.goal.description &&
+        prevProps.goal.status === nextProps.goal.status &&
+        prevProps.goal.difficulty === nextProps.goal.difficulty &&
+        prevProps.goal.progressPercentage === nextProps.goal.progressPercentage &&
+        prevProps.goal.notes === nextProps.goal.notes &&
+        prevProps.goal.startDate === nextProps.goal.startDate &&
+        prevProps.goal.targetEndDate === nextProps.goal.targetEndDate &&
+        prevProps.goal.createdAt === nextProps.goal.createdAt &&
+        prevProps.onEdit === nextProps.onEdit &&
+        prevProps.onDelete === nextProps.onDelete &&
+        prevProps.onAddSubGoal === nextProps.onAddSubGoal &&
+        prevProps.onGoalUpdate === nextProps.onGoalUpdate &&
+        prevProps.allGoalsForForm === nextProps.allGoalsForForm
+    );
+});

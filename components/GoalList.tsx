@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { LearningGoal, GoalStatus, GoalDifficulty, SuggestedGoal } from '../types.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import * as goalService from '../services/goalService.ts';
@@ -38,7 +38,7 @@ const GoalList: React.FC<GoalListProps> = ({
     const [error, setError] = useState<string | null>(null);
     const { token } = useAuth();
 
-    const handleEdit = (goal: LearningGoal) => {
+    const handleEdit = useCallback((goal: LearningGoal) => {
         if (parentOnEdit) {
             parentOnEdit(goal);
         } else {
@@ -46,16 +46,16 @@ const GoalList: React.FC<GoalListProps> = ({
             setCurrentParentId(null);
             setIsFormOpen(true);
         }
-    };
+    }, [parentOnEdit]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (parentOnDelete) {
             parentOnDelete(id);
         } else {
             const confirmation = window.confirm('Are you sure you want to delete this goal? This action cannot be undone.');
-            
+
             if (!confirmation) return;
-            
+
             try {
                 // First attempt to delete
                 await goalService.deleteGoal(id, token);
@@ -66,7 +66,7 @@ const GoalList: React.FC<GoalListProps> = ({
                     const cascadeConfirmation = window.confirm(
                         'This goal has sub-goals. Deleting it will also delete all of its sub-goals. Are you absolutely sure?'
                     );
-                    
+
                     if (cascadeConfirmation) {
                         // Call a different endpoint that forces deletion
                         await goalService.forceDeleteGoal(id, token);
@@ -79,9 +79,9 @@ const GoalList: React.FC<GoalListProps> = ({
                 }
             }
         }
-    };
+    }, [parentOnDelete, token, onGoalUpdate]);
 
-    const handleAddSubGoal = (parentId: string) => {
+    const handleAddSubGoal = useCallback((parentId: string) => {
         if (parentOnAddSubGoal) {
             parentOnAddSubGoal(parentId);
         } else {
@@ -89,9 +89,9 @@ const GoalList: React.FC<GoalListProps> = ({
             setCurrentParentId(parentId);
             setIsFormOpen(true);
         }
-    };
+    }, [parentOnAddSubGoal]);
 
-    const handleSaveGoal = async (goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal) => {
+    const handleSaveGoal = useCallback(async (goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal) => {
         try {
             if ('_id' in goalData) {
                 await goalService.updateGoal(goalData._id, goalData, token);
@@ -104,9 +104,9 @@ const GoalList: React.FC<GoalListProps> = ({
             setError(err.message || 'Failed to save the goal.');
             setTimeout(() => setError(null), 5000);
         }
-    };
+    }, [token, onGoalUpdate]);
 
-    const handleBatchDelete = async () => {
+    const handleBatchDelete = useCallback(async () => {
         if (selectedGoalIds.length === 0) return;
         
         const confirmation = window.confirm(
@@ -148,31 +148,31 @@ const GoalList: React.FC<GoalListProps> = ({
           setError(err.message || 'Failed to delete selected goals.');
           setTimeout(() => setError(null), 5000);
         }
-    };
+    }, [selectedGoalIds, token, onGoalUpdate]);
 
-    const toggleSelectionMode = () => {
-        setIsSelectionMode(!isSelectionMode);
-        setSelectedGoalIds([]); // Clear selections when toggling mode
-    };
-      
-    const toggleGoalSelection = (goalId: string) => {
-        setSelectedGoalIds(prev => 
-          prev.includes(goalId) 
-            ? prev.filter(id => id !== goalId) 
+    const toggleSelectionMode = useCallback(() => {
+        setIsSelectionMode(prev => !prev);
+        setSelectedGoalIds([]);
+    }, []);
+
+    const toggleGoalSelection = useCallback((goalId: string) => {
+        setSelectedGoalIds(prev =>
+          prev.includes(goalId)
+            ? prev.filter(id => id !== goalId)
             : [...prev, goalId]
         );
-    };
-      
-    const selectAllGoals = () => {
-        setSelectedGoalIds(goals.map(goal => goal._id));
-    };
-      
-    const clearSelection = () => {
-        setSelectedGoalIds([]);
-    };
+    }, []);
 
-    const handleSaveGoalWithSubtasks = async (
-        goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal, 
+    const selectAllGoals = useCallback(() => {
+        setSelectedGoalIds(goals.map(goal => goal._id));
+    }, [goals]);
+
+    const clearSelection = useCallback(() => {
+        setSelectedGoalIds([]);
+    }, []);
+
+    const handleSaveGoalWithSubtasks = useCallback(async (
+        goalData: Omit<LearningGoal, '_id' | 'createdAt' | 'owner'> | LearningGoal,
         subtasks: SuggestedGoal[]
     ) => {
         try {
@@ -263,7 +263,7 @@ const GoalList: React.FC<GoalListProps> = ({
             setError(err.message || 'Failed to save goal with subtasks.');
             setTimeout(() => setError(null), 5000);
         }
-    };
+    }, [parentOnSaveWithSubtasks, token, onGoalUpdate]);
 
     return (
         <div className="space-y-4">
@@ -321,7 +321,7 @@ const GoalList: React.FC<GoalListProps> = ({
                     onGoalUpdate={onGoalUpdate}
                     isSelectionMode={isSelectionMode}
                     isSelected={selectedGoalIds.includes(goal._id)}
-                    onToggleSelection={() => toggleGoalSelection(goal._id)}
+                    onToggleSelection={toggleGoalSelection}
                     selectedGoalIds={selectedGoalIds}
                     />
                 </React.Fragment>
