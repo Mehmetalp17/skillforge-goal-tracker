@@ -58,4 +58,7 @@ const LearningGoalSchema = new mongoose.Schema({
     }
 });
 
+LearningGoalSchema.index({ owner: 1 });
+LearningGoalSchema.index({ owner: 1, parentGoal: 1 });
+
 export default mongoose.model('LearningGoal', LearningGoalSchema);
