@@ -28,12 +28,18 @@ app.use(express.json());
 // In your api/index.js file
 
 const corsOptions = {
-    origin: [
-        'https://skillforge-goal-tracker.vercel.app',
-        'https://skillforge-goal-tracker-j8fbiwjrw-mehmet-alps-projects-20d93c8c.vercel.app',
-        'skillforge-goal-tracker-9vkhibcvs-mehmet-alps-projects-20d93c8c.vercel.app',
-        'http://localhost:5173' // For local development
-    ],
+    origin: (origin, callback) => {
+        if (
+            !origin ||
+            origin === 'http://localhost:5173' ||
+            origin === 'https://skillforge-goal-tracker.vercel.app' ||
+            /^https:\/\/skillforge-goal-tracker-.*\.vercel\.app$/.test(origin)
+        ) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     optionsSuccessStatus: 200
 };
