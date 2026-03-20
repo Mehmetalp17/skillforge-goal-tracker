@@ -8,7 +8,4 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
   },
-  define: {
-    'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY)
-  }
 });
